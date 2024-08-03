@@ -1,9 +1,13 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using VLR;
+using VLR.DisconnectHandlers;
+using VLR.Input;
 
 var services = new ServiceCollection();
 services.AddSingleton<NetworkMonitor>();
+services.AddTransient<ChaosHeadNoahDriver>();
+services.AddTransient<VirtualKeyboard>();
 services.AddLogging(options =>
 {
     options.SetMinimumLevel(LogLevel.Trace);
@@ -15,7 +19,10 @@ services.AddLogging(options =>
 });
 
 var provider = services.BuildServiceProvider();
-var monitor = provider.GetRequiredService<NetworkMonitor>();
+var networkMonitor = provider.GetRequiredService<NetworkMonitor>();
+var chaosHeadNoahDriver = provider.GetRequiredService<ChaosHeadNoahDriver>();
+
+networkMonitor.OnDisconnect += () => Task.Run(chaosHeadNoahDriver.DisableAutoMode);
 
 while (true)
 {

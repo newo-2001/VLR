@@ -6,6 +6,11 @@ using System.Net.NetworkInformation;
 namespace VLR;
 public class NetworkMonitor
 {
+    public delegate void DisconnectEventHandler();
+    public event DisconnectEventHandler OnDisconnect;
+
+    const string ADAPTER_NAME = "Ethernet";
+
     private readonly object _eventLock = new object();
     private readonly ILogger<NetworkMonitor> _logger;
     private DateTime? _rebooting;
@@ -14,6 +19,7 @@ public class NetworkMonitor
     {
         _logger = logger;
         _logger.LogInformation("Listening for changes to network availability...");
+
         NetworkChange.NetworkAddressChanged += new NetworkAddressChangedEventHandler(OnNetworkEvent);
     }
 
@@ -31,7 +37,9 @@ public class NetworkMonitor
             }
             else if (!available && _rebooting is null)
             {
-                _logger.LogInformation("Network connectivity lost, resetting network adapter...");
+                _logger.LogInformation("Network connectivity lost, resetting network adapter");
+                Task.Run(OnDisconnect.Invoke);
+
                 ResetNetworkAdapter();
             }
         }
@@ -41,7 +49,7 @@ public class NetworkMonitor
     {
         _rebooting = DateTime.UtcNow;
 
-        var query = new SelectQuery("Win32_NetworkAdapter", "NetConnectionID = \"Ethernet\"");
+        var query = new SelectQuery("Win32_NetworkAdapter", $"NetConnectionID = \"{ADAPTER_NAME}\"");
         var searcher = new ManagementObjectSearcher(query);
 
         var adapters = searcher.Get().Cast<ManagementObject>();
@@ -49,7 +57,7 @@ public class NetworkMonitor
 
         if (adapter.NetEnabled)
         {
-            _logger.LogTrace("Network adapter still enabled, disabling...");
+            _logger.LogTrace("Network adapter still enabled, disabling");
             if (adapter.Disable() != 0)
             {
                 _logger.LogError("Failed to disable network adapter");
