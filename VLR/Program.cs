@@ -22,7 +22,7 @@ var provider = services.BuildServiceProvider();
 var networkMonitor = provider.GetRequiredService<NetworkMonitor>();
 var chaosHeadNoahDriver = provider.GetRequiredService<ChaosHeadNoahDriver>();
 
-networkMonitor.OnDisconnect += () => Task.Run(chaosHeadNoahDriver.DisableAutoMode);
+networkMonitor.OnDisconnect += chaosHeadNoahDriver.DisableAutoMode;
 
 while (true)
 {
