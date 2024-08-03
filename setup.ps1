@@ -1,0 +1,1 @@
+mgmtclassgen Win32_NetworkAdapter -p VLR/NetworkAdapter.cs
